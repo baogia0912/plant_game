@@ -16,7 +16,7 @@ acorn5 = pygame.image.load('graphics/stage 5.png')
 
 water_droplet = pygame.image.load('graphics/water_droplet.png')
 
-class item(pygame.Rect):
+class Item(pygame.Rect):
     def __init__(self, x, y, width, height, image, draging = False):
         self.x = x
         self.y = y
@@ -24,10 +24,19 @@ class item(pygame.Rect):
         self.height = height
         self.image = image
         self.draging = draging
+        self.offset_x = 0 
+        self.offset_y = 0
 
     def draw(self):
         screen.blit(pygame.transform.scale(pygame.image.load(self.image), (self.width, self.height)), (self.x, self.y))
 
+    def update_offset(self, pos):
+        self.offset_x = self.x - pos[0]
+        self.offset_y = self.y - pos[1]
+
+    def update_coord(self, pos):
+        self.x = pos[0] + self.offset_x
+        self.y = pos[1] + self.offset_y
 
 
 # acorn = item(0,100,100,100,'graphics/acorn.png')
@@ -44,16 +53,19 @@ def main():
 def launch_game(running):
     global screen_width, screen_height
 
-    grass = item(screen_width/2 - 100, screen_height/2 - 100, 200, 200, "graphics/grass.jpeg")
+    grass = Item(screen_width/2 - 100, screen_height/2 - 100, 200, 200, "graphics/grass.jpeg")
 
     red_box = pygame.Rect(0, 0, 100, 100)
     pygame.draw.rect(screen, (255, 0, 0),red_box)
 
-    blue_box = pygame.Rect(0, 100, 100, 100)
-    pygame.draw.rect(screen, (0, 0, 255),blue_box)
+    water = Item(0, 100, 100, 100, "graphics/water_droplet.png")
 
+    stage_5 = Item(0, 0, 500, 500, "graphics/stage 5.png")
     acorn_draging = False
-    water_draging = False
+
+    movable_item_list = [water, stage_5]
+    static_item_list = [grass]
+
     while running:
         for event in pygame.event.get():
             if event.type == VIDEORESIZE:
@@ -62,12 +74,10 @@ def launch_game(running):
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-
-                    if blue_box.collidepoint(event.pos):
-                        water_draging = True
-                        mouse_x, mouse_y = event.pos
-                        water_offset_x = blue_box.x - mouse_x
-                        water_offset_y = blue_box.y - mouse_y
+                    for item in movable_item_list:
+                        if item.collidepoint(event.pos):
+                            item.draging = True
+                            item.update_offset(event.pos)
 
                     if red_box != None:
                         if red_box.collidepoint(event.pos):
@@ -84,7 +94,9 @@ def launch_game(running):
                             growing = time.time()
                             index = 0
                     acorn_draging = False
-                    water_draging = False
+
+                    for item in movable_item_list:
+                        item.draging = False
 
             elif event.type == pygame.MOUSEMOTION:
 
@@ -93,10 +105,9 @@ def launch_game(running):
                     red_box.x = mouse_x + acorn_offset_x
                     red_box.y = mouse_y + acorn_offset_y
 
-                if water_draging:
-                    mouse_x, mouse_y = event.pos
-                    blue_box.x = mouse_x + water_offset_x
-                    blue_box.y = mouse_y + water_offset_y
+                for item in movable_item_list:
+                    if item.draging:
+                        item.update_coord(event.pos)
 
             if event.type == pygame.QUIT:
                 running = False
@@ -111,7 +122,9 @@ def launch_game(running):
                 growing = time.time()
                 index += 1
             screen.blit(pygame.transform.scale([acorn1, acorn2, acorn3, acorn4, acorn5][index],(grass.width, grass.height)), (grass.x,grass.y))
-        screen.blit(pygame.transform.scale(pygame.image.load('graphics/water_droplet.png'), (blue_box.width, blue_box.height)), (blue_box.x, blue_box.y))
+        
+        for item in movable_item_list:
+            item.draw()
 
         pygame.display.flip()
 

@@ -38,6 +38,52 @@ class Item(pygame.Rect):
         self.x = pos[0] + self.offset_x
         self.y = pos[1] + self.offset_y
 
+class Plant(Item):
+    def __init__(self, x, y, width, height, image, cycle ,growth_period ,draging = False, planted = False):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.image = image
+        self.cycle = cycle
+        self.draging = draging
+        self.offset_x = 0 
+        self.offset_y = 0
+        self.planted = planted
+        self.planted_time = 0
+        self.grass_x = None
+        self.grass_y = None
+        self.grass_width = None
+        self.grass_height = None
+        self.stage = 0
+        self.growth_period = growth_period
+
+    def planted_on_grass(self, grass):
+        if self.colliderect(grass):
+            self.planted = True
+            self.planted_time = time.time()
+            self.grass_x = grass.x 
+            self.grass_y = grass.y
+            self.grass_width = grass.width
+            self.grass_height = grass.height
+            return True
+        return False
+
+
+    def draw(self):
+        if self.planted:
+            screen.blit(pygame.transform.scale(self.cycle[self.stage],(self.grass_width, self.grass_height)), (self.grass_x,self.grass_y))
+            
+            if time.time() - self.planted_time > self.growth_period and self.stage < len(self.cycle) - 1: 
+                self.stage += 1
+                self.planted_time = time.time()
+            
+
+        else:
+            screen.blit(pygame.transform.scale(pygame.image.load(self.image), (self.width, self.height)), (self.x,self.y))
+
+        
+
 
 # acorn = item(0,100,100,100,'graphics/acorn.png')
 
@@ -55,17 +101,17 @@ def launch_game(running):
 
     grass = Item(screen_width/2 - 100, screen_height/2 - 100, 200, 200, "graphics/grass.jpeg")
 
-    red_box = pygame.Rect(0, 0, 100, 100)
-    pygame.draw.rect(screen, (255, 0, 0),red_box)
+    acorn = Plant(0, 0, 100, 100, 'graphics/acorn.png', [acorn1, acorn2, acorn3, acorn4, acorn5], 5)
+    reversed_acorn = Plant(0, 200, 100, 100, 'graphics/acorn.png', [acorn5, acorn4, acorn3, acorn2, acorn1], 2)
 
     water = Item(0, 100, 100, 100, "graphics/water_droplet.png")
 
-    stage_5 = Item(0, 0, 500, 500, "graphics/stage 5.png")
-    acorn_draging = False
-
-    movable_item_list = [water, stage_5]
+    plant_item_list = [acorn, reversed_acorn]
+    movable_item_list = [water]
     static_item_list = [grass]
 
+
+    
     while running:
         for event in pygame.event.get():
             if event.type == VIDEORESIZE:
@@ -74,36 +120,33 @@ def launch_game(running):
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
+
+                    for plant in plant_item_list:
+                        if not plant.planted:
+                            if plant.collidepoint(event.pos):
+                                plant.draging = True
+                                plant.update_offset(event.pos)
+
                     for item in movable_item_list:
                         if item.collidepoint(event.pos):
                             item.draging = True
                             item.update_offset(event.pos)
 
-                    if red_box != None:
-                        if red_box.collidepoint(event.pos):
-                            acorn_draging = True
-                            mouse_x, mouse_y = event.pos
-                            acorn_offset_x = red_box.x - mouse_x
-                            acorn_offset_y = red_box.y - mouse_y
-
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
-                    if red_box != None:
-                        if grass.colliderect(red_box):
-                            red_box = None
-                            growing = time.time()
-                            index = 0
-                    acorn_draging = False
+                    for plant in plant_item_list:
+                        if not plant.planted:
+                            plant.planted_on_grass(grass)
+                        plant.draging = False
 
                     for item in movable_item_list:
                         item.draging = False
 
             elif event.type == pygame.MOUSEMOTION:
 
-                if acorn_draging:
-                    mouse_x, mouse_y = event.pos
-                    red_box.x = mouse_x + acorn_offset_x
-                    red_box.y = mouse_y + acorn_offset_y
+                for plant in plant_item_list:
+                    if plant.draging:
+                        plant.update_coord(event.pos)
 
                 for item in movable_item_list:
                     if item.draging:
@@ -115,13 +158,9 @@ def launch_game(running):
 
         screen.fill(backgound_color)
         grass.draw()
-        if red_box != None:
-            screen.blit(pygame.transform.scale(pygame.image.load('graphics/acorn.png'), (red_box.width, red_box.height)), (red_box.x,red_box.y))
-        else:
-            if time.time() - growing > 3 and index < 4: 
-                growing = time.time()
-                index += 1
-            screen.blit(pygame.transform.scale([acorn1, acorn2, acorn3, acorn4, acorn5][index],(grass.width, grass.height)), (grass.x,grass.y))
+
+        for plant in plant_item_list:
+            plant.draw()
         
         for item in movable_item_list:
             item.draw()

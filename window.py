@@ -10,6 +10,10 @@ screen_height = 700
 backgound_color = (102, 51, 0) #brown
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 
+plant_item_list = []
+movable_item_list = []
+static_item_list = []
+
 acorn1 = pygame.image.load('graphics/stage 1.png')
 acorn2 = pygame.image.load('graphics/stage 2.png')
 acorn3 = pygame.image.load('graphics/stage 3.png')
@@ -32,6 +36,7 @@ class Item(pygame.Rect):
         self.draging = draging
         self.offset_x = 0 
         self.offset_y = 0
+        movable_item_list.append(self)
 
     def draw(self):
         screen.blit(pygame.transform.scale(pygame.image.load(self.image), (self.width, self.height)), (self.x, self.y))
@@ -44,11 +49,11 @@ class Item(pygame.Rect):
         self.x = pos[0] + self.offset_x
         self.y = pos[1] + self.offset_y
 
-class Plant(Item):
+class Plant(pygame.Rect):
     """
     an item with the ability to grow when planted
     """
-    def __init__(self, x, y, width, height, image, cycle ,growth_period ,draging = False, planted = False):
+    def __init__(self, x, y, width, height, image, cycle ,growth_period, reward ,draging = False, planted = False):
         self.x = x
         self.y = y
         self.width = width
@@ -67,15 +72,27 @@ class Plant(Item):
         self.stage = 0
         self.growth_period = growth_period
         self.watered = False
+        self.reward = reward
+        plant_item_list.append(self)
+
+    def update_offset(self, pos):
+        self.offset_x = self.x - pos[0]
+        self.offset_y = self.y - pos[1]
+
+    def update_coord(self, pos):
+        self.x = pos[0] + self.offset_x
+        self.y = pos[1] + self.offset_y
 
     def planted_on_grass(self, grass):
         if self.colliderect(grass):
-            self.planted = True
-            self.grass_x = grass.x 
-            self.grass_y = grass.y
-            self.grass_width = grass.width
-            self.grass_height = grass.height
-            return True
+            if not grass.planted:
+                self.planted = True
+                self.grass_x = grass.x 
+                self.grass_y = grass.y
+                self.grass_width = grass.width
+                self.grass_height = grass.height
+                grass.planted = True
+                return True
         return False
 
 
@@ -93,14 +110,27 @@ class Plant(Item):
                 self.stage += 1
                 self.planted_time = time.time()
                 self.watered = False
-                    
             
+            if self.stage == len(self.cycle) - 1 and self.reward != None:
+                Item(self.x, self.y, self.width, self.height, self.reward)
+                self.reward = None
+                
 
         else:
             screen.blit(pygame.transform.scale(pygame.image.load(self.image), (self.width, self.height)), (self.x,self.y))
 
+class Grass(pygame.Rect):
+    def __init__(self, x, y, width, height, image, draging = False):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.image = image
+        self.planted = False
+        static_item_list.append(self)
 
-
+    def draw(self):
+        screen.blit(pygame.transform.scale(pygame.image.load(self.image), (self.width, self.height)), (self.x, self.y))
 
     
 def launch_game(running):
@@ -109,20 +139,13 @@ def launch_game(running):
     global screen_width, screen_height
 
     #static item
-    grass = Item(screen_width/2 - 100, screen_height/2 - 100, 200, 200, "graphics/grass.jpeg")
+    grass = Grass(screen_width/2 - 100, screen_height/2 - 100, 200, 200, "graphics/grass.jpeg")
 
     #plants item
-    acorn = Plant(0, 0, 100, 100, 'graphics/acorn.png', [acorn1, acorn2, acorn3, acorn4, acorn5], 5)
-    reversed_acorn = Plant(0, 200, 100, 100, 'graphics/acorn.png', [acorn5, acorn4, acorn3, acorn2, acorn1], 2)
+    acorn = Plant(0, 0, 100, 100, 'graphics/acorn.png', [acorn1, acorn2, acorn3, acorn4, acorn5], 2, 'graphics/wood sword.png')
 
     #movable item
     water = Item(0, 100, 100, 100, "graphics/watering can.png")
-
-    #lists to seperate item types
-    plant_item_list = [acorn, reversed_acorn]
-    movable_item_list = [water]
-    static_item_list = [grass]
-
 
     #game starts here
     while running:

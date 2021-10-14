@@ -1,0 +1,5 @@
+Things to add:
+
+- Pause between growth stage and require water to continue growing 
+
+- If a grass is plated on no more seed can be planted

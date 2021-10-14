@@ -16,6 +16,8 @@ acorn3 = pygame.image.load('graphics/stage 3.png')
 acorn4 = pygame.image.load('graphics/stage 4.png')
 acorn5 = pygame.image.load('graphics/stage 5.png')
 
+water_drop = pygame.image.load('graphics/water drop.png')
+
 #making classes
 class Item(pygame.Rect):
     """
@@ -64,11 +66,11 @@ class Plant(Item):
         self.grass_height = None
         self.stage = 0
         self.growth_period = growth_period
+        self.watered = False
 
     def planted_on_grass(self, grass):
         if self.colliderect(grass):
             self.planted = True
-            self.planted_time = time.time()
             self.grass_x = grass.x 
             self.grass_y = grass.y
             self.grass_width = grass.width
@@ -80,10 +82,18 @@ class Plant(Item):
     def draw(self):
         if self.planted:
             screen.blit(pygame.transform.scale(self.cycle[self.stage],(self.grass_width, self.grass_height)), (self.grass_x,self.grass_y))
+            if not self.watered and self.stage < len(self.cycle) - 1: 
+                
+                screen.blit(pygame.transform.scale(water_drop, (int(water_drop.get_width()/10), int(water_drop.get_height()/10))), (self.grass_x+(self.grass_width/2)-(water_drop.get_width()/20),self.y-80))
+
+                self.planted_time = time.time()
             
-            if time.time() - self.planted_time > self.growth_period and self.stage < len(self.cycle) - 1: 
+            if time.time() - self.planted_time > self.growth_period and self.stage < len(self.cycle) - 1:
+
                 self.stage += 1
                 self.planted_time = time.time()
+                self.watered = False
+                    
             
 
         else:
@@ -106,7 +116,7 @@ def launch_game(running):
     reversed_acorn = Plant(0, 200, 100, 100, 'graphics/acorn.png', [acorn5, acorn4, acorn3, acorn2, acorn1], 2)
 
     #movable item
-    water = Item(0, 100, 100, 100, "graphics/water_droplet.png")
+    water = Item(0, 100, 100, 100, "graphics/watering can.png")
 
     #lists to seperate item types
     plant_item_list = [acorn, reversed_acorn]
@@ -136,6 +146,8 @@ def launch_game(running):
                             if plant.collidepoint(event.pos):
                                 plant.draging = True
                                 plant.update_offset(event.pos)
+
+                        
                     
                     #detect clicking on all movable items 
                     for item in movable_item_list:
@@ -148,11 +160,16 @@ def launch_game(running):
                 #left click
                 if event.button == 1:
                     
-                    #handle stop moving plant items and check if planted on grass
+                    #handle stop moving plant items and check if planted on grass or is watered
                     for plant in plant_item_list:
+
                         if not plant.planted:
                             plant.planted_on_grass(grass)
                         plant.draging = False
+
+                        if not plant.watered:
+                            if plant.colliderect(water):
+                                plant.watered = True
 
                     #handle stop moving all movable items
                     for item in movable_item_list:

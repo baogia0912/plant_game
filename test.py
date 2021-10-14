@@ -1,4 +1,6 @@
-print('hello world')
-print("123")
-print('456')
-print("789")
+a = int(input())
+
+print(range((a-1)/2,a+1))
+
+
+

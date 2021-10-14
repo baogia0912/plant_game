@@ -9,6 +9,7 @@ screen_width = 1000
 screen_height = 700
 backgound_color = (102, 51, 0) #brown
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
+mouse_busy = False
 
 plant_item_list = []
 movable_item_list = []
@@ -136,16 +137,27 @@ class Grass(pygame.Rect):
 def launch_game(running):
 
     #declare ingame variable
-    global screen_width, screen_height
+    global screen_width, screen_height, mouse_busy
 
-    #static item
-    grass = Grass(screen_width/2 - 100, screen_height/2 - 100, 200, 200, "graphics/grass.jpeg")
+    with open('game items/movable items.txt', "r") as movable_item_file:
+        lines = movable_item_file.readlines()
+        for line in lines:
+            Item(int(line.split(', ')[1]), int(line.split(', ')[2]), int(line.split(', ')[3]), int(line.split(', ')[4]), 'graphics/movable items/'+line.split(', ')[0]+'.png')
+
+    with open('game items/static items.txt',"r") as static_item_file:
+        lines = static_item_file.readlines()
+        for line in lines:
+            Grass(int(line.split(', ')[1]), int(line.split(', ')[2]), int(line.split(', ')[3]), int(line.split(', ')[4]), 'graphics/static items/'+line.split(', ')[0]+'.png')
+
+    with open('game items/plant items.txt',"r") as static_item_file:
+        lines = static_item_file.readlines()
+        for line in lines:
+            Plant(int(line.split(', ')[1]), int(line.split(', ')[2]), int(line.split(', ')[3]), int(line.split(', ')[4]), int(line.split(', ')[5]), 'graphics/plant items/'+line.split(', ')[0]+'.png')
+
 
     #plants item
     acorn = Plant(0, 0, 100, 100, 'graphics/acorn.png', [acorn1, acorn2, acorn3, acorn4, acorn5], 2, 'graphics/wood sword.png')
-
-    #movable item
-    water = Item(0, 100, 100, 100, "graphics/watering can.png")
+    reverse_acorn = Plant(0, 0, 100, 100, 'graphics/acorn.png', [acorn5, acorn4, acorn3, acorn2, acorn1], 2, 'graphics/wood sword.png')
 
     #game starts here
     while running:
@@ -165,18 +177,20 @@ def launch_game(running):
                     
                     #detect clicking on all plant items 
                     for plant in plant_item_list:
-                        if not plant.planted:
+                        if not plant.planted and mouse_busy == False:
                             if plant.collidepoint(event.pos):
                                 plant.draging = True
                                 plant.update_offset(event.pos)
+                                mouse_busy = True
 
-                        
-                    
+
                     #detect clicking on all movable items 
                     for item in movable_item_list:
-                        if item.collidepoint(event.pos):
+                        if item.collidepoint(event.pos) and mouse_busy == False:
                             item.draging = True
                             item.update_offset(event.pos)
+                            mouse_busy = True
+                    
 
             #handle mouse up
             elif event.type == pygame.MOUSEBUTTONUP:
@@ -187,16 +201,19 @@ def launch_game(running):
                     for plant in plant_item_list:
 
                         if not plant.planted:
-                            plant.planted_on_grass(grass)
+                            plant.planted_on_grass(static_item_list[0])
                         plant.draging = False
 
                         if not plant.watered:
-                            if plant.colliderect(water):
+                            if plant.colliderect(movable_item_list[0]):
                                 plant.watered = True
+
 
                     #handle stop moving all movable items
                     for item in movable_item_list:
                         item.draging = False
+                    
+                    mouse_busy = False
 
             #handle mouse motion
             elif event.type == pygame.MOUSEMOTION:
@@ -218,8 +235,8 @@ def launch_game(running):
         #refill background with color
         screen.fill(backgound_color)
 
-        # draw all items in list
-        grass.draw()
+        for grass in static_item_list:
+            grass.draw()
 
         for plant in plant_item_list:
             plant.draw()

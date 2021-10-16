@@ -1,6 +1,2 @@
-a = int(input())
-
-print(range((a-1)/2,a+1))
-
-
-
+f=open('test.png', 'wb')
+f.write(b'hello')
